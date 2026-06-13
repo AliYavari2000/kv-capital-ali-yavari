@@ -1,0 +1,2 @@
+{"node": "adjustment_engine", "source": "src/config.py coefficients", "detail": "Applied deterministic sales-comparison adjustments to 9 comps.", "ts": "2026-06-12T22:29:37"}
+{"node": "human_review", "source": "reviewer_decision", "detail": "approve by loan_officer: ", "ts": "2026-06-12T22:29:45"}

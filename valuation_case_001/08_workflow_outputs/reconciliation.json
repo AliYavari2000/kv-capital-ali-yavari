@@ -1,0 +1,13 @@
+{
+  "point_estimate": 1121900.0,
+  "mid": 1121900.0,
+  "low": 1030100.0,
+  "high": 1249300.0,
+  "median_adjusted": 1085300.0,
+  "trimmed_mean_adjusted": 1141800.0,
+  "bracketed": true,
+  "implied_ppsf": 517.0,
+  "method": "similarity_weighted_sales_comparison",
+  "comp_count": 9,
+  "reconciliation_narrative": "The reconciled value of $1,121,900 is well-supported by the weighted sales comparison approach, with the most significant contributions coming from Comp AB-02103, which carried a weight of 0.1968 and an adjusted price of $1,058,338, and Comp AB-01363, with a weight of 0.1627 and an adjusted price of $1,082,437. These comps not only reflect a high degree of similarity to the subject property but also demonstrate reasonable gross adjustment percentages, indicating that the adjustments made were justifiable. Furthermore, the comps bracket the subject property, with adjusted prices ranging from $1,030,088 to $1,497,558, thereby reinforcing the reliability of the reconciled value. However, it is important to note that the adjusted values exhibit a wide variation (CoV of 14.2%), and the mean adjustment percentage is substantial at 41.9%, which may introduce some uncertainty into the final valuation."
+}

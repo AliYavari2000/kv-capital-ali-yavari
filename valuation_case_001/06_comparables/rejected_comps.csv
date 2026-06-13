@@ -1,0 +1,4 @@
+id,address,city,neighborhood,lat,lon,property_type,bedrooms,bathrooms,gla_sqft,lot_size_sqft,year_built,sale_date,sale_price
+AB-01876,8454 Glenmore Ave NW,Calgary,Signal Hill,51.032394,-114.163674,Detached,6,4.0,2586,7494,1967,2024-08-25,1203100
+AB-02058,1120 Bow Rd SW,Calgary,Signal Hill,51.043826,-114.182303,Detached,5,4.5,3026,5270,2020,2024-09-12,1271000
+AB-00169,5029 Cedar Way NE,Calgary,Signal Hill,51.049812,-114.166635,Detached,3,3.0,1425,4015,2016,2025-02-26,581900

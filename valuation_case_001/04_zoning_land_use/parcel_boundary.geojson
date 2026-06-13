@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "label": "parcel_boundary",
+        "address": "2952 Signal Hill Dr Sw",
+        "roll_number": "085010700",
+        "community": "SIGNAL HILL",
+        "land_use_designation": "R-CG",
+        "parcel_id": "085010700"
+      },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                -114.1705561,
+                51.0222074
+              ],
+              [
+                -114.1710876,
+                51.0224082
+              ],
+              [
+                -114.1712082,
+                51.0222809
+              ],
+              [
+                -114.1706709,
+                51.022078
+              ],
+              [
+                -114.1705561,
+                51.0222074
+              ]
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "effective_date": "2026-06-01",
+  "report_date": "2026-06-01",
+  "client": "KV Capital Credit",
+  "borrower": "Open Data Subject (Calgary Assessment)",
+  "intended_use": "Mortgage financing / collateral valuation",
+  "case_provenance": "Downloaded from Open Calgary (data.calgary.ca) on case build. Comparable sale rows are synthetic (data/comps.csv) \u2014 MLS/Pillar 9 data requires a licensed feed.",
+  "subject_roll_number": "085010700"
+}

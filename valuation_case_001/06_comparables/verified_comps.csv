@@ -1,0 +1,9 @@
+id,address,city,neighborhood,lat,lon,property_type,bedrooms,bathrooms,gla_sqft,lot_size_sqft,year_built,sale_date,sale_price
+AB-01876,8454 Glenmore Ave NW,Calgary,Signal Hill,51.032394,-114.163674,Detached,6,4.0,2586,7494,1967,2024-08-25,1203100
+AB-02058,1120 Bow Rd SW,Calgary,Signal Hill,51.043826,-114.182303,Detached,5,4.5,3026,5270,2020,2024-09-12,1271000
+AB-00169,5029 Cedar Way NE,Calgary,Signal Hill,51.049812,-114.166635,Detached,3,3.0,1425,4015,2016,2025-02-26,581900
+AB-02325,3762 Riverside Dr SE,Calgary,Mount Royal,51.021348,-114.123173,Detached,3,4.5,2087,3613,2012,2025-01-26,1373500
+AB-01070,8498 Maple Cres NW,Calgary,Mount Royal,51.025903,-114.122457,Detached,5,4.0,2549,4442,1970,2026-01-31,1805600
+AB-01363,6008 Whyte Way SW,Calgary,Signal Hill,51.052307,-114.160505,Detached,4,3.5,1899,3565,1966,2025-11-19,759200
+AB-01617,4785 Heritage St NW,Calgary,Signal Hill,51.053045,-114.181882,Detached,6,4.5,3053,6723,1999,2025-06-08,1448800
+AB-01324,9830 Memorial St NW,Calgary,Mount Royal,51.034688,-114.124146,Detached,2,2.0,1586,6446,1987,2024-12-29,1060600

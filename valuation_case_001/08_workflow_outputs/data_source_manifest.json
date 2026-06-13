@@ -1,0 +1,556 @@
+{
+  "jurisdiction": "Calgary, Alberta, Canada",
+  "practice_standards": [
+    {
+      "id": "cuspap",
+      "name": "CUSPAP (Canadian Uniform Standards of Professional Appraisal Practice)",
+      "provider": "Appraisal Institute of Canada (AIC)",
+      "format": "PDF / web",
+      "jurisdiction": "Canada",
+      "why_it_matters": "Governs appraisal practice requirements; AIC members must comply with CUSPAP.",
+      "url": "https://www.aicanada.ca/"
+    },
+    {
+      "id": "reca_rms",
+      "name": "RECA Residential Measurement Standard (RMS)",
+      "provider": "Real Estate Council of Alberta (RECA)",
+      "format": "PDF / web",
+      "jurisdiction": "Alberta",
+      "why_it_matters": "Alberta licensees must use RMS when measuring/advertising residential property; detached homes are measured using the exterior wall at foundation.",
+      "url": "https://www.reca.ca/"
+    }
+  ],
+  "sources": [
+    {
+      "id": "cuspap",
+      "name": "CUSPAP (Canadian Uniform Standards of Professional Appraisal Practice)",
+      "provider": "Appraisal Institute of Canada (AIC)",
+      "format": "PDF / web",
+      "jurisdiction": "Canada",
+      "why_it_matters": "Governs appraisal practice requirements; AIC members must comply with CUSPAP.",
+      "url": "https://www.aicanada.ca/"
+    },
+    {
+      "id": "reca_rms",
+      "name": "RECA Residential Measurement Standard (RMS)",
+      "provider": "Real Estate Council of Alberta (RECA)",
+      "format": "PDF / web",
+      "jurisdiction": "Alberta",
+      "why_it_matters": "Alberta licensees must use RMS when measuring/advertising residential property; detached homes are measured using the exterior wall at foundation.",
+      "url": "https://www.reca.ca/"
+    },
+    {
+      "id": "calgary_assessment_pdf",
+      "name": "Calgary Assessment Details Report",
+      "provider": "City of Calgary Assessment",
+      "format": "PDF",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Contains current assessment, property type, property details, use, class, site influences, title number, legal description, LINC, declared value, land use, and permit existence.",
+      "url": "https://assessment.calgary.ca/"
+    },
+    {
+      "id": "open_calgary_assessment",
+      "name": "Open Calgary \u2014 Current & Historical Assessment",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / API",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Calgary publishes current and historical parcel assessment datasets.",
+      "url": "https://data.calgary.ca/"
+    },
+    {
+      "id": "open_calgary_parcel",
+      "name": "Open Calgary \u2014 Parcel Address / OPF",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / GeoJSON",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Needed for address normalization, parcel geometry, plan/block/lot, and area.",
+      "url": "https://data.calgary.ca/"
+    },
+    {
+      "id": "open_calgary_zoning",
+      "name": "Open Calgary \u2014 Land Use Districts",
+      "provider": "City of Calgary (Open Data)",
+      "format": "GeoJSON / SHP / CSV",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Needed to check legal use, zoning district, and highest-and-best-use.",
+      "url": "https://data.calgary.ca/"
+    },
+    {
+      "id": "open_calgary_community",
+      "name": "Open Calgary \u2014 Community Boundaries",
+      "provider": "City of Calgary (Open Data)",
+      "format": "GeoJSON / SHP / CSV",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Needed to define neighbourhood/submarket and comp search boundaries.",
+      "url": "https://data.calgary.ca/"
+    },
+    {
+      "id": "open_calgary_building_permits",
+      "name": "Open Calgary \u2014 Building Permits",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / API",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Needed to verify renovations, basement development, additions, garages, etc.",
+      "url": "https://data.calgary.ca/"
+    },
+    {
+      "id": "open_calgary_development_permits",
+      "name": "Open Calgary \u2014 Development Permits",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / API",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Needed for legality, land-use changes, major redevelopments, discretionary approvals.",
+      "url": "https://data.calgary.ca/"
+    },
+    {
+      "id": "calgary_zoning_bylaw",
+      "name": "Calgary Land Use Bylaw",
+      "provider": "City of Calgary",
+      "format": "PDF / web",
+      "jurisdiction": "Calgary",
+      "why_it_matters": "Authoritative text for permitted uses, setbacks, and development standards.",
+      "url": "https://www.calgary.ca/planning/land-use/bylaws.html"
+    },
+    {
+      "id": "alberta_spin2_title",
+      "name": "Alberta SPIN2 \u2014 Certificate of Title",
+      "provider": "Alberta Land Titles (SPIN2)",
+      "format": "PDF",
+      "jurisdiction": "Alberta",
+      "why_it_matters": "Current title is available as a certified PDF and describes ownership rights and registered instruments/caveats.",
+      "url": "https://www.alberta.ca/spin2"
+    },
+    {
+      "id": "alberta_spin2_survey",
+      "name": "Alberta SPIN2 \u2014 Registered Survey Plan",
+      "provider": "Alberta Land Titles (SPIN2)",
+      "format": "TIF / paper / digital",
+      "jurisdiction": "Alberta",
+      "why_it_matters": "Registered survey plans are available through SPIN2 or registry agents; digital copies are TIF.",
+      "url": "https://www.alberta.ca/spin2"
+    },
+    {
+      "id": "rpr_survey",
+      "name": "Real Property Report (RPR)",
+      "provider": "Alberta Land Surveyor",
+      "format": "PDF",
+      "jurisdiction": "Alberta",
+      "why_it_matters": "Shows improvements relative to parcel boundaries for compliance and area checks."
+    },
+    {
+      "id": "pillar9_mls",
+      "name": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "jurisdiction": "Alberta",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data.",
+      "url": "https://www.pillar9.ca/"
+    },
+    {
+      "id": "creb_market",
+      "name": "CREB Monthly Market Report",
+      "provider": "Calgary Real Estate Board (CREB)",
+      "format": "PDF / CSV",
+      "jurisdiction": "Calgary region",
+      "why_it_matters": "Needed for time adjustments, market direction, inventory, benchmark price, sales/new listings ratio.",
+      "url": "https://www.creb.com/"
+    },
+    {
+      "id": "kv_internal",
+      "name": "KV Capital Assignment Package",
+      "provider": "KV Capital Credit",
+      "format": "PDF / internal",
+      "jurisdiction": "Alberta",
+      "why_it_matters": "Lender assignment order, borrower application, and engagement instructions."
+    }
+  ],
+  "case_file_mapping": [
+    {
+      "section": "assessment_tax",
+      "file_key": "assessment_details_report",
+      "source_id": "calgary_assessment_pdf",
+      "source": "Calgary Assessment Details Report",
+      "provider": "City of Calgary Assessment",
+      "format": "PDF",
+      "why_it_matters": "Contains current assessment, property type, property details, use, class, site influences, title number, legal description, LINC, declared value, land use, and permit existence."
+    },
+    {
+      "section": "assessment_tax",
+      "file_key": "assessment_open_data",
+      "source_id": "open_calgary_assessment",
+      "source": "Open Calgary \u2014 Current & Historical Assessment",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / API",
+      "why_it_matters": "Calgary publishes current and historical parcel assessment datasets."
+    },
+    {
+      "section": "assessment_tax",
+      "file_key": "property_summary_report",
+      "source_id": "calgary_assessment_pdf",
+      "source": "Calgary Assessment Details Report",
+      "provider": "City of Calgary Assessment",
+      "format": "PDF",
+      "why_it_matters": "Contains current assessment, property type, property details, use, class, site influences, title number, legal description, LINC, declared value, land use, and permit existence."
+    },
+    {
+      "section": "assessment_tax",
+      "file_key": "tax_certificate",
+      "source_id": "calgary_assessment_pdf",
+      "source": "Calgary Assessment Details Report",
+      "provider": "City of Calgary Assessment",
+      "format": "PDF",
+      "why_it_matters": "Contains current assessment, property type, property details, use, class, site influences, title number, legal description, LINC, declared value, land use, and permit existence."
+    },
+    {
+      "section": "assignment",
+      "file_key": "assignment_order",
+      "source_id": "kv_internal",
+      "source": "KV Capital Assignment Package",
+      "provider": "KV Capital Credit",
+      "format": "PDF / internal",
+      "why_it_matters": "Lender assignment order, borrower application, and engagement instructions."
+    },
+    {
+      "section": "assignment",
+      "file_key": "borrower_application",
+      "source_id": "kv_internal",
+      "source": "KV Capital Assignment Package",
+      "provider": "KV Capital Credit",
+      "format": "PDF / internal",
+      "why_it_matters": "Lender assignment order, borrower application, and engagement instructions."
+    },
+    {
+      "section": "assignment",
+      "file_key": "effective_date",
+      "source_id": "kv_internal",
+      "source": "KV Capital Assignment Package",
+      "provider": "KV Capital Credit",
+      "format": "PDF / internal",
+      "why_it_matters": "Lender assignment order, borrower application, and engagement instructions."
+    },
+    {
+      "section": "assignment",
+      "file_key": "lender_instructions",
+      "source_id": "kv_internal",
+      "source": "KV Capital Assignment Package",
+      "provider": "KV Capital Credit",
+      "format": "PDF / internal",
+      "why_it_matters": "Lender assignment order, borrower application, and engagement instructions."
+    },
+    {
+      "section": "comparables",
+      "file_key": "active_listings_raw",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "comparables",
+      "file_key": "comp_listing_sheets",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "comparables",
+      "file_key": "comp_photos",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "comparables",
+      "file_key": "conditional_pending_raw",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "comparables",
+      "file_key": "rejected_comps",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "comparables",
+      "file_key": "sold_comps_raw",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "comparables",
+      "file_key": "verified_comps",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "legal_title",
+      "file_key": "compliance_certificate",
+      "source_id": "rpr_survey",
+      "source": "Real Property Report (RPR)",
+      "provider": "Alberta Land Surveyor",
+      "format": "PDF",
+      "why_it_matters": "Shows improvements relative to parcel boundaries for compliance and area checks."
+    },
+    {
+      "section": "legal_title",
+      "file_key": "current_certificate_of_title",
+      "source_id": "alberta_spin2_title",
+      "source": "Alberta SPIN2 \u2014 Certificate of Title",
+      "provider": "Alberta Land Titles (SPIN2)",
+      "format": "PDF",
+      "why_it_matters": "Current title is available as a certified PDF and describes ownership rights and registered instruments/caveats."
+    },
+    {
+      "section": "legal_title",
+      "file_key": "encumbrances",
+      "source_id": "alberta_spin2_title",
+      "source": "Alberta SPIN2 \u2014 Certificate of Title",
+      "provider": "Alberta Land Titles (SPIN2)",
+      "format": "PDF",
+      "why_it_matters": "Current title is available as a certified PDF and describes ownership rights and registered instruments/caveats."
+    },
+    {
+      "section": "legal_title",
+      "file_key": "historical_title_search",
+      "source_id": "alberta_spin2_title",
+      "source": "Alberta SPIN2 \u2014 Certificate of Title",
+      "provider": "Alberta Land Titles (SPIN2)",
+      "format": "PDF",
+      "why_it_matters": "Current title is available as a certified PDF and describes ownership rights and registered instruments/caveats."
+    },
+    {
+      "section": "legal_title",
+      "file_key": "real_property_report",
+      "source_id": "rpr_survey",
+      "source": "Real Property Report (RPR)",
+      "provider": "Alberta Land Surveyor",
+      "format": "PDF",
+      "why_it_matters": "Shows improvements relative to parcel boundaries for compliance and area checks."
+    },
+    {
+      "section": "legal_title",
+      "file_key": "registered_plan",
+      "source_id": "alberta_spin2_survey",
+      "source": "Alberta SPIN2 \u2014 Registered Survey Plan",
+      "provider": "Alberta Land Titles (SPIN2)",
+      "format": "TIF / paper / digital",
+      "why_it_matters": "Registered survey plans are available through SPIN2 or registry agents; digital copies are TIF."
+    },
+    {
+      "section": "market",
+      "file_key": "absorption_inventory",
+      "source_id": "creb_market",
+      "source": "CREB Monthly Market Report",
+      "provider": "Calgary Real Estate Board (CREB)",
+      "format": "PDF / CSV",
+      "why_it_matters": "Needed for time adjustments, market direction, inventory, benchmark price, sales/new listings ratio."
+    },
+    {
+      "section": "market",
+      "file_key": "creb_monthly_market_report",
+      "source_id": "creb_market",
+      "source": "CREB Monthly Market Report",
+      "provider": "Calgary Real Estate Board (CREB)",
+      "format": "PDF / CSV",
+      "why_it_matters": "Needed for time adjustments, market direction, inventory, benchmark price, sales/new listings ratio."
+    },
+    {
+      "section": "market",
+      "file_key": "days_on_market_stats",
+      "source_id": "creb_market",
+      "source": "CREB Monthly Market Report",
+      "provider": "Calgary Real Estate Board (CREB)",
+      "format": "PDF / CSV",
+      "why_it_matters": "Needed for time adjustments, market direction, inventory, benchmark price, sales/new listings ratio."
+    },
+    {
+      "section": "market",
+      "file_key": "neighbourhood_market_summary",
+      "source_id": "creb_market",
+      "source": "CREB Monthly Market Report",
+      "provider": "Calgary Real Estate Board (CREB)",
+      "format": "PDF / CSV",
+      "why_it_matters": "Needed for time adjustments, market direction, inventory, benchmark price, sales/new listings ratio."
+    },
+    {
+      "section": "market",
+      "file_key": "price_index",
+      "source_id": "creb_market",
+      "source": "CREB Monthly Market Report",
+      "provider": "Calgary Real Estate Board (CREB)",
+      "format": "PDF / CSV",
+      "why_it_matters": "Needed for time adjustments, market direction, inventory, benchmark price, sales/new listings ratio."
+    },
+    {
+      "section": "permits",
+      "file_key": "building_permits",
+      "source_id": "open_calgary_building_permits",
+      "source": "Open Calgary \u2014 Building Permits",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / API",
+      "why_it_matters": "Needed to verify renovations, basement development, additions, garages, etc."
+    },
+    {
+      "section": "permits",
+      "file_key": "development_permits",
+      "source_id": "open_calgary_development_permits",
+      "source": "Open Calgary \u2014 Development Permits",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / API",
+      "why_it_matters": "Needed for legality, land-use changes, major redevelopments, discretionary approvals."
+    },
+    {
+      "section": "permits",
+      "file_key": "permit_documents",
+      "source_id": "open_calgary_building_permits",
+      "source": "Open Calgary \u2014 Building Permits",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / API",
+      "why_it_matters": "Needed to verify renovations, basement development, additions, garages, etc."
+    },
+    {
+      "section": "permits",
+      "file_key": "survey_measurements",
+      "source_id": "rpr_survey",
+      "source": "Real Property Report (RPR)",
+      "provider": "Alberta Land Surveyor",
+      "format": "PDF",
+      "why_it_matters": "Shows improvements relative to parcel boundaries for compliance and area checks."
+    },
+    {
+      "section": "subject",
+      "file_key": "floor_plan",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "subject",
+      "file_key": "inspection_notes",
+      "source_id": "kv_internal",
+      "source": "KV Capital Assignment Package",
+      "provider": "KV Capital Credit",
+      "format": "PDF / internal",
+      "why_it_matters": "Lender assignment order, borrower application, and engagement instructions."
+    },
+    {
+      "section": "subject",
+      "file_key": "listing",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "subject",
+      "file_key": "purchase_contract",
+      "source_id": "kv_internal",
+      "source": "KV Capital Assignment Package",
+      "provider": "KV Capital Credit",
+      "format": "PDF / internal",
+      "why_it_matters": "Lender assignment order, borrower application, and engagement instructions."
+    },
+    {
+      "section": "subject",
+      "file_key": "rms_measurement_report",
+      "source_id": "reca_rms",
+      "source": "RECA Residential Measurement Standard (RMS)",
+      "provider": "Real Estate Council of Alberta (RECA)",
+      "format": "PDF / web",
+      "why_it_matters": "Alberta licensees must use RMS when measuring/advertising residential property; detached homes are measured using the exterior wall at foundation."
+    },
+    {
+      "section": "subject",
+      "file_key": "subject_listing_pdf",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "subject",
+      "file_key": "subject_photos",
+      "source_id": "pillar9_mls",
+      "source": "Pillar 9 / MLS / REALTOR Systems",
+      "provider": "Alberta MLS (Pillar 9)",
+      "format": "CSV / PDF / images",
+      "why_it_matters": "Needed for real comparable sales, listing remarks, DOM, photos, sale conditions, and listing history. Pillar 9 aggregates Alberta listing data."
+    },
+    {
+      "section": "zoning",
+      "file_key": "community_boundary",
+      "source_id": "open_calgary_community",
+      "source": "Open Calgary \u2014 Community Boundaries",
+      "provider": "City of Calgary (Open Data)",
+      "format": "GeoJSON / SHP / CSV",
+      "why_it_matters": "Needed to define neighbourhood/submarket and comp search boundaries."
+    },
+    {
+      "section": "zoning",
+      "file_key": "land_use_district",
+      "source_id": "open_calgary_zoning",
+      "source": "Open Calgary \u2014 Land Use Districts",
+      "provider": "City of Calgary (Open Data)",
+      "format": "GeoJSON / SHP / CSV",
+      "why_it_matters": "Needed to check legal use, zoning district, and highest-and-best-use."
+    },
+    {
+      "section": "zoning",
+      "file_key": "overlays",
+      "source_id": "open_calgary_zoning",
+      "source": "Open Calgary \u2014 Land Use Districts",
+      "provider": "City of Calgary (Open Data)",
+      "format": "GeoJSON / SHP / CSV",
+      "why_it_matters": "Needed to check legal use, zoning district, and highest-and-best-use."
+    },
+    {
+      "section": "zoning",
+      "file_key": "parcel_boundary",
+      "source_id": "open_calgary_parcel",
+      "source": "Open Calgary \u2014 Parcel Address / OPF",
+      "provider": "City of Calgary (Open Data)",
+      "format": "CSV / GeoJSON",
+      "why_it_matters": "Needed for address normalization, parcel geometry, plan/block/lot, and area."
+    },
+    {
+      "section": "zoning",
+      "file_key": "zoning_bylaw_excerpt",
+      "source_id": "calgary_zoning_bylaw",
+      "source": "Calgary Land Use Bylaw",
+      "provider": "City of Calgary",
+      "format": "PDF / web",
+      "why_it_matters": "Authoritative text for permitted uses, setbacks, and development standards."
+    },
+    {
+      "section": "zoning",
+      "file_key": "zoning_hbu_notes",
+      "source_id": "open_calgary_zoning",
+      "source": "Open Calgary \u2014 Land Use Districts",
+      "provider": "City of Calgary (Open Data)",
+      "format": "GeoJSON / SHP / CSV",
+      "why_it_matters": "Needed to check legal use, zoning district, and highest-and-best-use."
+    }
+  ]
+}

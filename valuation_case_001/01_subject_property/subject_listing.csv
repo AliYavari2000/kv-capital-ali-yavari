@@ -1,0 +1,2 @@
+id,address,city,neighborhood,lat,lon,property_type,bedrooms,bathrooms,gla_sqft,lot_size_sqft,year_built,roll_number,assessed_value,land_use_designation
+SUBJECT-085010700,2952 Signal Hill Dr Sw,Calgary,Signal Hill,51.022236379999995,-114.17081578,Detached,4,3.0,2171,7755,1994,085010700,1160000.0,R-CG

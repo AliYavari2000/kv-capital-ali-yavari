@@ -1,0 +1,23 @@
+{
+  "address": "2952 Signal Hill Dr Sw",
+  "city": "Calgary",
+  "neighborhood": "Signal Hill",
+  "property_type": "Detached",
+  "bedrooms": 4,
+  "bathrooms": 3.0,
+  "gla_sqft": 2171,
+  "lot_size_sqft": 7755,
+  "year_built": 1994,
+  "condition": "Average",
+  "quality": "standard",
+  "upgrades": [],
+  "site_features": {},
+  "lat": 51.07,
+  "lon": -114.17,
+  "property_age": 32,
+  "condition_score": 3,
+  "quality_score": 2,
+  "basement": "standardized",
+  "garage_spaces": 0,
+  "location_features": {}
+}
