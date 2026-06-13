@@ -97,16 +97,19 @@ def build_graph(checkpointer: Optional[Any] = None):
     return g.compile(checkpointer=checkpointer or MemorySaver())
 
 
-def run_headless(raw_input: Any, *, human_decision: Optional[dict] = None,
+def run_headless(raw_input: Any = None, *, case_dir: Optional[str] = None,
+                 human_decision: Optional[dict] = None,
                  thread_id: str = "cli") -> CompState:
     """Run the full graph to completion without pausing.
 
+    Drive the run either from ``raw_input`` (a dict of fields or a free-text
+    listing) or from a ``case_dir`` pointing at a ``valuation_case_XXX/`` folder.
     If the deal triggers human review, ``human_decision`` is used as the
     reviewer's verdict (defaults to approve), so the run never blocks. Returns
     the final state.
     """
     app = build_graph()
-    state = new_state(raw_input)
+    state = new_state(raw_input, case_dir=case_dir)
     # Inject a decision so the interrupt in human_review never blocks headless runs.
     state["human_decision"] = human_decision or {
         "action": "approve", "reviewer": "headless", "note": "Auto-approved (headless run)."

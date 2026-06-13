@@ -87,6 +87,15 @@ class Assignment(TypedDict, total=False):
     effective_date: str               # valuation "as of" date (ISO)
     report_date: str                  # date the assignment was taken
     property_type: str
+    # Filled by the Node 1 LLM agent:
+    assignment_type: str              # purchase | refinance | construction_loan | ...
+    valuation_purpose: str
+    special_requirements: list[str]   # lender/client special instructions
+    required_documents: dict[str, Any]  # {required, present, missing}
+    missing_info: list[str]           # critical fields still missing
+    workfile_id: str
+    requires_human_review: bool       # intake-level escalation
+    escalations: list[dict[str, Any]]
 
 
 class LegalTitle(TypedDict, total=False):
@@ -120,7 +129,10 @@ class MarketScope(TypedDict, total=False):
 class CompState(TypedDict, total=False):
     # Inputs
     raw_input: Any                    # dict of fields OR free-text listing str
-    intake_source: str                # "structured" | "free_text"
+    intake_source: str                # "structured" | "free_text" | "case_folder"
+    case_dir: str                     # path to a valuation_case_XXX/ folder (optional)
+    documents: dict[str, Any]         # per-section parsed data + typed document hooks
+    data_sources: dict[str, Any]      # Calgary/Alberta source registry + case file mapping
     assignment: Assignment            # assignment definition + effective date
     subject: dict[str, Any]           # inspected + normalized subject property
 
@@ -137,12 +149,17 @@ class CompState(TypedDict, total=False):
     retrieval_meta: dict[str, Any]    # filters used, widening attempts
     market_context: dict[str, Any]    # active + pending/conditional listings
     ranked_comps: list[RankedComp]    # top-N selected + scored
+    rejected_comps: list[dict[str, Any]]  # rejected comp candidates + reasons
 
     # Verification + normalization
     verification: dict[str, Any]      # cross-check results + flags per comp
+    normalization: dict[str, Any]     # assumptions + flagged outliers
 
     # Adjustment + valuation
     adjusted_comps: list[RankedComp]  # ranked comps with adjustments filled in
+    adjustment_grid: list[dict[str, Any]]
+    adjustment_flags: list[dict[str, str]]
+    sensitivity: dict[str, Any]
     valuation: Valuation
 
     # Risk + human review
@@ -154,16 +171,26 @@ class CompState(TypedDict, total=False):
     report: dict[str, Any]            # {"markdown", "json"}
 
     # Bookkeeping
+    workfile_id: str                  # unique valuation/workfile ID (Node 1)
+    evidence: list[dict[str, Any]]    # evidence trail (source docs/facts logged by agents)
     trace: list[str]                  # ordered node-by-node log
     messages: Annotated[list, add_messages]
     errors: list[str]
 
 
-def new_state(raw_input: Any) -> CompState:
-    """Build an initial state from raw input (dict or free-text)."""
-    return {
+def new_state(raw_input: Any = None, *, case_dir: Optional[str] = None) -> CompState:
+    """Build an initial state from raw input (dict / free-text) or a case folder.
+
+    Pass ``case_dir`` to drive the pipeline from a ``valuation_case_XXX/`` folder;
+    otherwise ``raw_input`` (a dict of fields or a free-text listing) is used.
+    """
+    state: CompState = {
         "raw_input": raw_input,
         "subject": {},
+        "documents": {},
         "trace": [],
         "errors": [],
     }
+    if case_dir:
+        state["case_dir"] = case_dir
+    return state
