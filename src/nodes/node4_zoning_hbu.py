@@ -14,6 +14,7 @@ import json
 from typing import Any
 
 from src import llm
+from src import fast_path
 from src.state import CompState
 from src.tools import zoning_tools
 
@@ -46,7 +47,10 @@ def zoning_hbu_node(state: CompState) -> dict[str, Any]:
     dispatch = zoning_tools.build_dispatch(tk)
     user = ("Assess zoning and HBU for this subject:\n"
             + json.dumps({"property_type": tk.ptype, "lot_size_sqft": tk.lot}, indent=2))
-    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, zoning_tools.TOOL_SPECS, dispatch)
+    run, mode = llm.run_node_agent(
+        state, dispatch, zoning_tools.TOOL_SPECS, _SYSTEM_PROMPT, user,
+        lambda: fast_path.run_zoning(tk, dispatch),
+    )
 
     rec = tk.record
     flags: list[dict[str, str]] = []
@@ -81,7 +85,7 @@ def zoning_hbu_node(state: CompState) -> dict[str, Any]:
 
     tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"zoning_hbu (LLM agent): zoning={zoning['zoning_code']}, conforming={conforming}, "
+        f"zoning_hbu ({mode}): zoning={zoning['zoning_code']}, conforming={conforming}, "
         f"hbu_tests={tk.hbu_tests or 'n/a'}, flags={len(flags)}; tools={tools_used}"
     ]
     return {

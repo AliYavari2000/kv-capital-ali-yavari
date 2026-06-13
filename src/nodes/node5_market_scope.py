@@ -14,6 +14,7 @@ import json
 from typing import Any
 
 from src import config, llm
+from src import fast_path
 from src.state import CompState
 from src.tools import market_scope_tools as mst
 
@@ -45,7 +46,10 @@ def market_scope_node(state: CompState) -> dict[str, Any]:
                           "neighborhood": tk.neighborhood, "city": tk.city,
                           "rerun_count": rerun}, indent=2)
             + ("\nThis is a re-pull; broaden the envelope." if rerun else ""))
-    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, mst.TOOL_SPECS, dispatch)
+    run, mode = llm.run_node_agent(
+        state, dispatch, mst.TOOL_SPECS, _SYSTEM_PROMPT, user,
+        lambda: fast_path.run_market_scope(tk, dispatch, rerun=rerun),
+    )
 
     p = config.RETRIEVAL
     scope = tk.scope
@@ -55,7 +59,6 @@ def market_scope_node(state: CompState) -> dict[str, Any]:
     property_types = scope.get("property_types") or mst._ADJACENT.get(
         tk.ptype, [tk.ptype] if tk.ptype else list(config.PROPERTY_TYPES))
 
-    # On a reviewer re-pull, broaden up front regardless of the agent's choice.
     if rerun:
         radius = round(radius * p["widen_radius_factor"], 2)
         recency += p["widen_recency_add_months"]
@@ -75,7 +78,7 @@ def market_scope_node(state: CompState) -> dict[str, Any]:
 
     tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"market_scope (LLM agent): radius={radius}km, recency={recency}mo, "
+        f"market_scope ({mode}): radius={radius}km, recency={recency}mo, "
         f"gla_band=+/-{int(gla_band*100)}%, segment={scope.get('segment')}, "
         f"types={property_types}; tools={tools_used}"
     ]

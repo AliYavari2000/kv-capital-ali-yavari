@@ -14,6 +14,7 @@ import json
 from typing import Any
 
 from src import llm
+from src import fast_path
 from src.state import CompState
 from src.tools import verification_tools
 
@@ -43,7 +44,10 @@ def fact_verification_node(state: CompState) -> dict[str, Any]:
             + json.dumps({"subject": {k: tk.subject.get(k) for k in
                                       ("gla_sqft", "lot_size_sqft", "year_built", "property_type")},
                           "comp_ids": [c.get("id") for c in tk.comps]}, indent=2, default=str))
-    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, verification_tools.TOOL_SPECS, dispatch)
+    run, mode = llm.run_node_agent(
+        state, dispatch, verification_tools.TOOL_SPECS, _SYSTEM_PROMPT, user,
+        lambda: fast_path.run_verification(tk, dispatch),
+    )
 
     # Guarantee comps carry a verified flag for downstream nodes.
     if not tk.summary:
@@ -64,7 +68,7 @@ def fact_verification_node(state: CompState) -> dict[str, Any]:
 
     tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"fact_verification (LLM agent): {verification['verified']}/{verification['checked']} "
+        f"fact_verification ({mode}): {verification['verified']}/{verification['checked']} "
         f"comps verified, {len(tk.verified_facts)} subject facts written, "
         f"flags={len(tk.flags)}; tools={tools_used}"
     ]

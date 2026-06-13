@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 from src import llm
+from src import fast_path
 from src.state import CompState
 from src.tools import subject_tools
 
@@ -28,8 +29,9 @@ _SYSTEM_PROMPT = (
     "evidence; normalize_measurement for any area not already in square feet; "
     "check_measurement_conflicts; then ALWAYS call validate_subject_schema. "
     "append_evidence for each source. If size, condition, or property type is "
-    "unclear or conflicting, call raise_human_review. Finish with a one-sentence "
-    "summary of the subject."
+    "unclear or conflicting, call raise_human_review. Cite Calgary/Alberta "
+    "authorities (Pillar 9/MLS listing, RECA RMS report, Open Calgary assessment) "
+    "via source_id in append_evidence. Finish with a one-sentence summary of the subject."
 )
 
 
@@ -50,8 +52,10 @@ def subject_property_node(state: CompState) -> dict[str, Any]:
 
     tk = subject_tools.SubjectToolkit(state)
     dispatch = subject_tools.build_dispatch(tk)
-    run = llm.run_tool_agent(_SYSTEM_PROMPT, assignment_user_prompt(tk),
-                             subject_tools.TOOL_SPECS, dispatch)
+    run, mode = llm.run_node_agent(
+        state, dispatch, subject_tools.TOOL_SPECS, _SYSTEM_PROMPT, assignment_user_prompt(tk),
+        lambda: fast_path.run_subject(tk, dispatch),
+    )
 
     # Guarantee the deterministic gate is computed even if the agent skipped it.
     if not tk.data_quality:
@@ -64,7 +68,7 @@ def subject_property_node(state: CompState) -> dict[str, Any]:
 
     tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"subject_property (LLM agent): type={tk.subject.get('property_type')}, "
+        f"subject_property ({mode}): type={tk.subject.get('property_type')}, "
         f"condition={tk.subject.get('condition')}, quality={tk.subject.get('quality')}, "
         f"conflicts={len(tk.conflicts)}; dq score={dq.get('score')}, passed={dq.get('passed')}, "
         f"missing_critical={dq.get('missing_critical') or 'none'}; tools={tools_used}"

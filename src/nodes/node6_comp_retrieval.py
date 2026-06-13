@@ -14,6 +14,7 @@ import json
 from typing import Any
 
 from src import config, data_store, llm
+from src import fast_path
 from src.state import CompState
 from src.tools import retrieval_tools
 
@@ -43,7 +44,10 @@ def comp_retrieval_node(state: CompState) -> dict[str, Any]:
             + json.dumps({"subject": {k: tk.subject.get(k) for k in
                                       ("property_type", "gla_sqft", "neighborhood", "city")},
                           "scope": tk.scope}, indent=2, default=str))
-    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, retrieval_tools.TOOL_SPECS, dispatch)
+    run, mode = llm.run_node_agent(
+        state, dispatch, retrieval_tools.TOOL_SPECS, _SYSTEM_PROMPT, user,
+        lambda: fast_path.run_retrieval(tk, dispatch),
+    )
 
     # Deterministic guarantees: ensure a pool, scoring, ranking, and context exist.
     if not tk.candidates:
@@ -58,7 +62,7 @@ def comp_retrieval_node(state: CompState) -> dict[str, Any]:
     tools_used = [c["tool"] for c in run["calls"]]
     final = tk.meta.get("final_filters", {})
     trace = state.get("trace", []) + [
-        f"comp_retrieval (LLM agent): {tk.meta.get('candidate_count', len(tk.candidates))} "
+        f"comp_retrieval ({mode}): {tk.meta.get('candidate_count', len(tk.candidates))} "
         f"candidates (radius={final.get('radius_km')}km, recency={final.get('recency_months')}mo, "
         f"widened={tk.meta.get('widened')}); selected {len(tk.ranked)}, rejected {len(tk.rejected)}; "
         f"tools={tools_used}"

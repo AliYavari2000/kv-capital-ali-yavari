@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 from src import llm
+from src import fast_path
 from src.state import CompState
 from src.tools import legal_tools
 
@@ -27,7 +28,8 @@ _SYSTEM_PROMPT = (
     "raise_human_review if the title identity does not match the subject "
     "(address mismatch, legal-description mismatch, multiple parcels, condo unit "
     "ambiguity, unclear ownership, value-affecting easement/restriction, or "
-    "missing title). Finish with a one-sentence identity confirmation."
+    "missing title). Cite Alberta SPIN2 title/survey and Open Calgary assessment "
+    "via source_id. Finish with a one-sentence identity confirmation."
 )
 
 
@@ -46,7 +48,10 @@ def legal_title_node(state: CompState) -> dict[str, Any]:
     import json
     user = ("Confirm the legal identity of this subject:\n"
             + json.dumps({"address": tk.address, "neighborhood": tk.nb, "city": tk.city}, indent=2))
-    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, legal_tools.TOOL_SPECS, dispatch)
+    run, mode = llm.run_node_agent(
+        state, dispatch, legal_tools.TOOL_SPECS, _SYSTEM_PROMPT, user,
+        lambda: fast_path.run_legal(tk, dispatch),
+    )
 
     rec = tk.record
     address_confirmed = bool(tk.address)
@@ -75,7 +80,7 @@ def legal_title_node(state: CompState) -> dict[str, Any]:
 
     tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"legal_title (LLM agent): address_confirmed={address_confirmed}, "
+        f"legal_title ({mode}): address_confirmed={address_confirmed}, "
         f"parcel={legal_title['parcel_id']}, title={legal_title['title_status']}, "
         f"conflicts={len(tk.conflicts)}, flags={len(flags)}; tools={tools_used}"
     ]

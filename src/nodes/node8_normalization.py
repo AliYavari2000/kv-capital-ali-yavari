@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 from src import llm
+from src import fast_path
 from src.state import CompState
 from src.tools import normalization_tools
 
@@ -40,7 +41,10 @@ def normalization_node(state: CompState) -> dict[str, Any]:
     user = (f"Normalize the subject and {len(tk.comps)} comps. "
             "Call canonical_property_mapper first, then handle missing values and "
             "outliers, and document assumptions.")
-    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, normalization_tools.TOOL_SPECS, dispatch)
+    run, mode = llm.run_node_agent(
+        state, dispatch, normalization_tools.TOOL_SPECS, _SYSTEM_PROMPT, user,
+        lambda: fast_path.run_normalization(tk, dispatch),
+    )
 
     # Guarantee normalization happened for downstream math.
     if not tk._normalized:
@@ -49,7 +53,7 @@ def normalization_node(state: CompState) -> dict[str, Any]:
 
     tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"normalization (LLM agent): standardized subject + {len(tk.comps)} comps "
+        f"normalization ({mode}): standardized subject + {len(tk.comps)} comps "
         f"(GLA/lot/baths/dates, condition/quality scores, basement/garage), "
         f"outliers={len(tk.outliers)}, assumptions={len(tk.assumptions)}; tools={tools_used}"
     ]

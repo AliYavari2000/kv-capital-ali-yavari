@@ -173,13 +173,25 @@ def _assumptions_block(state: CompState, valued: bool) -> str:
         "for the stated intended use only.",
         "- Comparable sales are adjusted to the effective date using the documented "
         f"market-appreciation rate ({config.MONTHLY_APPRECIATION*100:.1f}%/month).",
-        "- All adjustment coefficients are from `src/config.py`; no figure in this "
+        "- All adjustment coefficients are from `src/config.py`; no dollar figure in this "
         "report is produced by an LLM.",
-        "- Legal/title and zoning findings are synthesized for demonstration and must "
-        "be confirmed against authoritative land-titles and municipal sources.",
-        "- Active/pending listing context is derived from recent nearby sales as a "
-        "supply proxy, not a live MLS feed.",
+        "- Subject measurements follow **RECA RMS** where an RMS report is on file; "
+        "appraisal practice follows **CUSPAP**.",
+        "- Municipal facts (assessment, zoning, permits, parcel geometry) are sourced from "
+        "**Open Calgary** datasets where structured exports are present in the case folder.",
+        "- Title/legal identity is sourced from **Alberta SPIN2** exports; comparables and "
+        "listing remarks from **Pillar 9 / MLS**; market direction from **CREB** where available.",
     ]
+    if state.get("case_dir"):
+        lines.append(
+            "- This run used a structured case folder; see **Data Sources & Provenance** "
+            "for the file-to-authority mapping."
+        )
+    else:
+        lines.append(
+            "- Without a case folder, legal/title and listing context may be synthesized; "
+            "confirm against authoritative sources before credit reliance."
+        )
     if not valued:
         lines.append("- A value could not be concluded; the file was returned for missing inputs.")
     return "\n".join(lines)
@@ -194,11 +206,36 @@ def _rejected_block(rejected: list[dict[str, Any]]) -> str:
 def _evidence_block(evidence: list[dict[str, Any]]) -> str:
     if not evidence:
         return "_No evidence logged._"
-    return "\n".join(
-        f"- [{e.get('node')}] {e.get('source')}"
-        + (f" - {e.get('detail')}" if e.get("detail") else "")
-        for e in evidence
-    )
+    lines = []
+    for e in evidence:
+        prov = e.get("provider") or e.get("authority")
+        src = e.get("source", "")
+        label = f"{src} ({prov})" if prov and prov not in src else src
+        lines.append(
+            f"- [{e.get('node')}] {label}"
+            + (f" - {e.get('detail')}" if e.get("detail") else "")
+        )
+    return "\n".join(lines)
+
+
+def _data_sources_block(manifest: dict[str, Any]) -> str:
+    if not manifest:
+        return "_No data-source manifest on file._"
+    lines = [f"**Jurisdiction:** {manifest.get('jurisdiction', 'n/a')}", ""]
+    lines.append("**Practice standards:**")
+    for s in manifest.get("practice_standards", []):
+        lines.append(f"- {s.get('name')} ({s.get('provider')}) — {s.get('why_it_matters', '')}")
+    lines.append("")
+    lines.append("**Case file → authoritative source mapping (sample):**")
+    for row in manifest.get("case_file_mapping", [])[:12]:
+        lines.append(
+            f"- `{row.get('section')}/{row.get('file_key')}` → "
+            f"**{row.get('source')}** ({row.get('provider')}, {row.get('format')})"
+        )
+    extra = len(manifest.get("case_file_mapping", [])) - 12
+    if extra > 0:
+        lines.append(f"- _…and {extra} more mappings in `data_source_manifest.json`_")
+    return "\n".join(lines)
 
 
 def _quality_control(state: CompState, valued: bool) -> dict[str, Any]:
@@ -243,6 +280,7 @@ def _write_outputs(state: CompState, report_json: dict[str, Any], md: str,
     _w("normalized_subject.json", _json.dumps(state.get("subject", {}), indent=2, default=str))
     _w("reconciliation.json", _json.dumps(report_json.get("valuation", {}), indent=2, default=str))
     _w("final_report.md", md)
+    _w("data_source_manifest.json", _json.dumps(state.get("data_sources", {}), indent=2, default=str))
     _w("evidence_log.jsonl",
        "\n".join(_json.dumps(e, default=str) for e in state.get("evidence", [])))
     _w("audit_log.jsonl",
@@ -281,6 +319,7 @@ def report_writer_node(state: CompState) -> dict[str, Any]:
     dq = state.get("data_quality", {})
     rejected = state.get("rejected_comps", [])
     evidence = state.get("evidence", [])
+    data_sources = state.get("data_sources", {})
 
     valued = bool(valuation) and valuation.get("method") != "no_comps"
     qc = _quality_control(state, valued)
@@ -362,6 +401,9 @@ _Generated {datetime.now():%Y-%m-%d %H:%M} | Effective date {a.get('effective_da
 - Passed: {qc['passed']}
 {chr(10).join(f"- Issue: {i}" for i in qc['issues']) if qc['issues'] else "- No QC issues."}
 
+## Data Sources & Provenance
+{_data_sources_block(data_sources)}
+
 ## Evidence Log
 {_evidence_block(evidence)}
 
@@ -389,6 +431,7 @@ _Generated {datetime.now():%Y-%m-%d %H:%M} | Effective date {a.get('effective_da
         "data_quality": dq,
         "rejected_comps": rejected,
         "evidence": evidence,
+        "data_sources": data_sources,
         "quality_control": qc,
         "narrative": narrative,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
