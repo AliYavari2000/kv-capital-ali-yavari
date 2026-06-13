@@ -1,70 +1,62 @@
-"""Node 8 - Feature Normalization (``NormalizationNode``).
+"""Node 8 - Normalization (LLM agent).
 
-Standardizes measurements and features across the subject and the selected comps
-so the adjustment grid compares like with like: numeric coercion of GLA / lot,
-half-step rounding of bathrooms, consistent basement / garage / condition
-treatment, and defaulting unstated features to the subject's so they net to zero.
+Standardizes units, dates, GLA, basement/garage, condition/quality scales, and
+location features across the subject and comps so the adjustment grid compares
+like with like. All conversions are deterministic; the agent orchestrates them
+and documents the assumptions.
 
-Tools: Python validators.
+No deterministic fallback: requires an LLM.
 """
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
+from src import llm
 from src.state import CompState
+from src.tools import normalization_tools
 
-
-def _to_int(v: Any) -> Optional[int]:
-    try:
-        return int(round(float(str(v).replace(",", "").replace("$", "").strip())))
-    except (TypeError, ValueError):
-        return None
-
-
-def _to_float(v: Any) -> Optional[float]:
-    try:
-        return float(str(v).replace(",", "").replace("$", "").strip())
-    except (TypeError, ValueError):
-        return None
-
-
-def _half_step(v: Optional[float]) -> Optional[float]:
-    if v is None:
-        return None
-    return round(v * 2) / 2.0
-
-
-def _normalize_features(rec: dict[str, Any], subject: dict[str, Any]) -> dict[str, Any]:
-    out = dict(rec)
-    if out.get("gla_sqft") is not None:
-        out["gla_sqft"] = _to_int(out["gla_sqft"])
-    if out.get("lot_size_sqft") is not None:
-        out["lot_size_sqft"] = _to_int(out["lot_size_sqft"])
-    if out.get("bathrooms") is not None:
-        out["bathrooms"] = _half_step(_to_float(out["bathrooms"]))
-
-    # Condition / basement / garage are standardized; when unknown they default
-    # to the subject so the adjustment engine treats them as neutral.
-    out["condition"] = (out.get("condition") or subject.get("condition") or "Average")
-    out["basement"] = out.get("basement") or subject.get("basement") or "Standardized"
-    out["garage"] = out.get("garage") or subject.get("garage") or "Standardized"
-    return out
+_SYSTEM_PROMPT = (
+    "You are the Normalization agent for KV Capital. Using ONLY the tools, "
+    "standardize all subject and comp data so adjustments can be applied "
+    "consistently.\n\n"
+    "Steps: canonical_property_mapper to map and normalize everything; "
+    "location_feature_encoder; missing_value_handler so unstated comp features "
+    "default to the subject; outlier_feature_detector; then "
+    "normalization_report_writer to record your assumptions. append_evidence for "
+    "assumptions, and raise_human_review for material missing data. Finish with a "
+    "one-line summary."
+)
 
 
 def normalization_node(state: CompState) -> dict[str, Any]:
-    subject = dict(state.get("subject", {}))
-    comps = state.get("ranked_comps", [])
+    if not llm.llm_available():
+        raise llm.LLMUnavailableError(
+            "Normalization is an LLM agent and requires OPENAI_API_KEY to be set."
+        )
 
-    # Standardize the subject's own feature set first.
-    subject["condition"] = subject.get("condition") or "Average"
-    subject["basement"] = subject.get("basement") or "Standardized"
-    subject["garage"] = subject.get("garage") or "Standardized"
+    tk = normalization_tools.NormalizationToolkit(state)
+    dispatch = normalization_tools.build_dispatch(tk)
+    user = (f"Normalize the subject and {len(tk.comps)} comps. "
+            "Call canonical_property_mapper first, then handle missing values and "
+            "outliers, and document assumptions.")
+    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, normalization_tools.TOOL_SPECS, dispatch)
 
-    normalized = [_normalize_features(c, subject) for c in comps]
+    # Guarantee normalization happened for downstream math.
+    if not tk._normalized:
+        tk.canonical_property_mapper()
+        tk.missing_value_handler()
 
+    tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"normalization: standardized units/features on subject + {len(normalized)} comps "
-        f"(GLA, lot, baths half-step, condition/basement/garage)"
+        f"normalization (LLM agent): standardized subject + {len(tk.comps)} comps "
+        f"(GLA/lot/baths/dates, condition/quality scores, basement/garage), "
+        f"outliers={len(tk.outliers)}, assumptions={len(tk.assumptions)}; tools={tools_used}"
     ]
-    return {"subject": subject, "ranked_comps": normalized, "trace": trace}
+    return {
+        "subject": tk.subject,
+        "ranked_comps": tk.comps,
+        "normalization": {"assumptions": tk.assumptions, "outliers": tk.outliers},
+        "evidence": state.get("evidence", []) + tk.evidence,
+        "trace": trace,
+    }

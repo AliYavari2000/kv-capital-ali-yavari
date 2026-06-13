@@ -1,13 +1,12 @@
-"""Node 10 - Reconciliation (``ReconciliationNode``).
+"""Node 10 - Bracketing and Reconciliation.
 
-Brackets and reconciles the adjusted comps into a low / mid / high value and a
-confidence grade. Weighting follows appraisal practice: the most similar,
-least-adjusted comps drive the estimate. Confidence is derived from a credit-
-oriented risk view (thin comps, dispersion, large adjustments, staleness,
-distance, weak inputs) plus the legal/title, zoning, and verification findings,
-and decides whether human sign-off is required.
+The value math is deterministic: weighting follows appraisal practice (the most
+similar, least-adjusted comps drive the estimate), and the range, median /
+trimmed-mean cross-checks, bracketing test, and confidence/risk view are all
+computed, not generated. The LLM then EXPLAINS the result (it does not compute
+it) via ``llm.write_reconciliation``.
 
-Tools: weighted comp model.
+No deterministic fallback for the explanation: requires an LLM.
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ import math
 import statistics
 from typing import Any
 
-from src import config
+from src import config, llm
 from src.state import CompState
 
 # How sharply gross adjustment penalizes a comp's weight.
@@ -51,11 +50,26 @@ def _reconcile(comps: list[dict[str, Any]], subject: dict[str, Any]) -> dict[str
 
     gla = float(subject.get("gla_sqft") or 0)
     implied_ppsf = point / gla if gla else 0.0
+
+    # Cross-checks: median + trimmed mean of adjusted prices.
+    median_adj = statistics.median(prices)
+    if len(prices) >= 4:
+        s = sorted(prices)
+        trimmed = statistics.fmean(s[1:-1])
+    else:
+        trimmed = statistics.fmean(prices)
+
+    # Bracketing: is the estimate bracketed by the adjusted comps?
+    bracketed = min(prices) <= point <= max(prices)
+
     return {
         "point_estimate": round(point, -2),
         "mid": round(point, -2),
         "low": round(lo, -2),
         "high": round(hi, -2),
+        "median_adjusted": round(median_adj, -2),
+        "trimmed_mean_adjusted": round(trimmed, -2),
+        "bracketed": bool(bracketed),
         "implied_ppsf": round(implied_ppsf, 0),
         "method": "similarity_weighted_sales_comparison",
         "comp_count": len(comps),
@@ -63,6 +77,10 @@ def _reconcile(comps: list[dict[str, Any]], subject: dict[str, Any]) -> dict[str
 
 
 def reconciliation_node(state: CompState) -> dict[str, Any]:
+    if not llm.llm_available():
+        raise llm.LLMUnavailableError(
+            "Reconciliation requires OPENAI_API_KEY to write the explanation."
+        )
     comps = state.get("adjusted_comps", []) or state.get("ranked_comps", [])
     subject = state.get("subject", {})
     dq = state.get("data_quality", {})
@@ -145,11 +163,24 @@ def reconciliation_node(state: CompState) -> dict[str, Any]:
         },
     }
 
+    # LLM explains the deterministic result (does not compute it).
+    narrative = llm.write_reconciliation({
+        "valuation": valuation,
+        "confidence": confidence,
+        "comps": [{"id": c.get("id"), "adjusted_price": c.get("adjusted_price"),
+                   "weight": c.get("weight"), "similarity": c.get("similarity"),
+                   "gross_adjustment_pct": c.get("gross_adjustment_pct")} for c in comps],
+        "bracketed": valuation.get("bracketed"),
+        "flags": [f["message"] for f in flags],
+    })
+    valuation["reconciliation_narrative"] = narrative
+
     trace = state.get("trace", []) + [
-        f"reconciliation: ${valuation['point_estimate']:,.0f} "
+        f"reconciliation (math + LLM explanation): ${valuation['point_estimate']:,.0f} "
         f"(range ${valuation['low']:,.0f}-${valuation['high']:,.0f}, "
         f"${valuation['implied_ppsf']:,.0f}/sqft) from {len(comps)} comps; "
-        f"confidence={confidence}, flags={highs}H/{mediums}M, "
+        f"bracketed={valuation.get('bracketed')}, confidence={confidence}, "
+        f"flags={highs}H/{mediums}M, "
         f"human_sign_off={'required' if requires_human else 'not required'}"
     ]
     return {"valuation": valuation, "risk": risk,

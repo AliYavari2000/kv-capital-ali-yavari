@@ -15,6 +15,7 @@ honored without pausing.
 
 from __future__ import annotations
 
+import datetime as _dt
 from typing import Any
 
 from langgraph.types import interrupt
@@ -22,6 +23,13 @@ from langgraph.types import interrupt
 from src.state import CompState
 
 _MAX_RERUNS = 1
+
+
+def _gather_escalations(state: CompState) -> list[dict[str, Any]]:
+    """Collect agent escalations raised upstream (intake/legal/zoning + risk)."""
+    esc: list[dict[str, Any]] = []
+    esc.extend(state.get("assignment", {}).get("escalations", []) or [])
+    return esc
 
 
 def _build_payload(state: CompState) -> dict[str, Any]:
@@ -34,9 +42,23 @@ def _build_payload(state: CompState) -> dict[str, Any]:
         "model_estimate": valuation.get("point_estimate"),
         "range": [valuation.get("low"), valuation.get("high")],
         "flags": risk.get("flags", []),
+        "escalations": _gather_escalations(state),
         "data_quality": dq,
         "subject": state.get("subject", {}),
+        "comps": [{"id": c.get("id"), "adjusted_price": c.get("adjusted_price"),
+                   "weight": c.get("weight")} for c in
+                  (state.get("adjusted_comps") or state.get("ranked_comps", []))],
         "options": ["approve", "override", "reject"],
+    }
+
+
+def _audit_entry(decision: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "node": "human_review",
+        "source": "reviewer_decision",
+        "detail": (f"{decision.get('action', 'approve')} by "
+                   f"{decision.get('reviewer', 'analyst')}: {decision.get('note', '')}"),
+        "ts": _dt.datetime.now().isoformat(timespec="seconds"),
     }
 
 
@@ -70,7 +92,9 @@ def human_review_node(state: CompState) -> dict[str, Any]:
         decision = {"action": "approve", "note": "Auto-approved: sufficient confidence, no human review required.",
                     "reviewer": "system"}
         trace = state.get("trace", []) + ["human_review: not required -> auto-approved"]
-        return {"human_decision": decision, "trace": trace}
+        return {"human_decision": decision,
+                "evidence": state.get("evidence", []) + [_audit_entry(decision)],
+                "trace": trace}
 
     # If a decision was injected up front (headless runs), honor it without pausing.
     decision = state.get("human_decision")
@@ -84,6 +108,7 @@ def human_review_node(state: CompState) -> dict[str, Any]:
 
     out = _apply(state, decision)
     action = out["human_decision"].get("action")
+    out["evidence"] = state.get("evidence", []) + [_audit_entry(decision)]
     trace = state.get("trace", []) + [
         f"human_review: reviewer={decision.get('reviewer', 'analyst')} action={action}"
         + (f" override=${decision.get('override_value'):,.0f}" if action == "override" and decision.get("override_value") else "")

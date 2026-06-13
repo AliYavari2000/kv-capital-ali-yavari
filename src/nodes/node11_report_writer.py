@@ -185,7 +185,89 @@ def _assumptions_block(state: CompState, valued: bool) -> str:
     return "\n".join(lines)
 
 
+def _rejected_block(rejected: list[dict[str, Any]]) -> str:
+    if not rejected:
+        return "_No comps were rejected._"
+    return "\n".join(f"- {r.get('id')}: {r.get('reason')}" for r in rejected)
+
+
+def _evidence_block(evidence: list[dict[str, Any]]) -> str:
+    if not evidence:
+        return "_No evidence logged._"
+    return "\n".join(
+        f"- [{e.get('node')}] {e.get('source')}"
+        + (f" - {e.get('detail')}" if e.get("detail") else "")
+        for e in evidence
+    )
+
+
+def _quality_control(state: CompState, valued: bool) -> dict[str, Any]:
+    """Deterministic QC: check for missing fields and internal contradictions."""
+    issues: list[str] = []
+    s = state.get("subject", {})
+    valuation = state.get("valuation", {})
+    for fld in ("property_type", "gla_sqft", "neighborhood"):
+        if not s.get(fld):
+            issues.append(f"subject missing {fld}")
+    if valued:
+        if not valuation.get("bracketed", True):
+            issues.append("final value not bracketed by comps")
+        if (valuation.get("comp_count") or 0) < config.RISK["min_comps"]:
+            issues.append("fewer comps than the minimum standard")
+    return {"passed": not issues, "issues": issues}
+
+
+def _write_outputs(state: CompState, report_json: dict[str, Any], md: str,
+                   comps: list[dict[str, Any]]) -> list[str]:
+    """Write the lightweight 08_workflow_outputs deliverables when a case is active.
+
+    Heavy exports (PDF / DOCX / XLSX) remain deferred to their dedicated tools.
+    """
+    case_dir = state.get("case_dir")
+    if not case_dir:
+        return []
+    import csv
+    import json as _json
+    import os
+    from src import case_store
+
+    out_dir = case_store.load_case(case_dir).outputs_dir(create=True)
+    written: list[str] = []
+
+    def _w(name: str, text: str) -> None:
+        path = os.path.join(out_dir, name)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        written.append(name)
+
+    _w("normalized_subject.json", _json.dumps(state.get("subject", {}), indent=2, default=str))
+    _w("reconciliation.json", _json.dumps(report_json.get("valuation", {}), indent=2, default=str))
+    _w("final_report.md", md)
+    _w("evidence_log.jsonl",
+       "\n".join(_json.dumps(e, default=str) for e in state.get("evidence", [])))
+    _w("audit_log.jsonl",
+       "\n".join(_json.dumps({"step": i + 1, "entry": t}, default=str)
+                 for i, t in enumerate(state.get("trace", []))))
+
+    if comps:
+        cols = ["id", "address", "neighborhood", "property_type", "gla_sqft",
+                "sale_date", "sale_price", "net_adjustment", "adjusted_price",
+                "similarity", "weight"]
+        grid_path = os.path.join(out_dir, "adjustment_grid.csv")
+        with open(grid_path, "w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
+            w.writeheader()
+            for c in comps:
+                w.writerow({k: c.get(k) for k in cols})
+        written.append("adjustment_grid.csv")
+    return written
+
+
 def report_writer_node(state: CompState) -> dict[str, Any]:
+    if not llm.llm_available():
+        raise llm.LLMUnavailableError(
+            "Report Writer requires OPENAI_API_KEY to write the narrative sections."
+        )
     s = state.get("subject", {})
     a = state.get("assignment", {})
     lt = state.get("legal_title", {})
@@ -197,8 +279,11 @@ def report_writer_node(state: CompState) -> dict[str, Any]:
     comps = state.get("adjusted_comps", []) or state.get("ranked_comps", [])
     decision = state.get("human_decision", {})
     dq = state.get("data_quality", {})
+    rejected = state.get("rejected_comps", [])
+    evidence = state.get("evidence", [])
 
     valued = bool(valuation) and valuation.get("method") != "no_comps"
+    qc = _quality_control(state, valued)
 
     narrative = ""
     if valued:
@@ -255,6 +340,9 @@ _Generated {datetime.now():%Y-%m-%d %H:%M} | Effective date {a.get('effective_da
 ## Rationale
 {narrative}
 
+## Reconciliation (appraiser explanation)
+{valuation.get('reconciliation_narrative', '_n/a_')}
+
 ## Comparable Sales
 {_comps_table(comps)}
 
@@ -264,8 +352,18 @@ _Generated {datetime.now():%Y-%m-%d %H:%M} | Effective date {a.get('effective_da
 ## Adjustment Detail
 {_adjustment_detail(comps)}
 
+## Rejected Comparables
+{_rejected_block(rejected)}
+
 ## Risk Review
 {_risk_block(risk)}
+
+## Quality Control
+- Passed: {qc['passed']}
+{chr(10).join(f"- Issue: {i}" for i in qc['issues']) if qc['issues'] else "- No QC issues."}
+
+## Evidence Log
+{_evidence_block(evidence)}
 
 ## Assumptions & Limiting Conditions
 {_assumptions_block(state, valued)}
@@ -289,9 +387,21 @@ _Generated {datetime.now():%Y-%m-%d %H:%M} | Effective date {a.get('effective_da
         "comps": comps,
         "human_decision": decision,
         "data_quality": dq,
+        "rejected_comps": rejected,
+        "evidence": evidence,
+        "quality_control": qc,
         "narrative": narrative,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
     }
 
-    trace = state.get("trace", []) + ["report_writer: generated markdown + json workfile"]
-    return {"report": {"markdown": md, "json": report_json, "narrative": narrative}, "trace": trace}
+    written = _write_outputs(state, report_json, md, comps)
+    trace = state.get("trace", []) + [
+        "report_writer: generated markdown + json workfile"
+        + (f"; wrote {len(written)} outputs to 08_workflow_outputs" if written else "")
+        + (f"; QC {'passed' if qc['passed'] else 'FAILED: ' + '; '.join(qc['issues'])}")
+    ]
+    return {
+        "report": {"markdown": md, "json": report_json, "narrative": narrative,
+                   "outputs_written": written},
+        "trace": trace,
+    }

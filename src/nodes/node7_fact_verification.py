@@ -1,82 +1,76 @@
-"""Node 7 - Fact Verification (``FactVerificationNode``).
+"""Node 7 - Fact Verification (LLM agent).
 
-Cross-checks the facts of each selected comp before it influences value:
-sale price plausibility, sale date validity/recency, GLA and lot-size sanity,
-and presence of lot data for lot-bearing types. Each comp gets a ``verified``
-flag and per-comp notes; pool-level issues are surfaced as flags for risk.
+Verifies subject and comp facts across MLS / assessment / permit / title / RPR
+sources, scoring confidence and flagging conflicts. Plausibility checks and
+confidence math are deterministic; the agent decides what to verify, records
+verified facts, and escalates unresolved conflicts.
 
-Tools: assessment rolls, permits, PDFs, title, RPR.
+No deterministic fallback: requires an LLM.
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from src import config, valuation_math as vm
+from src import llm
 from src.state import CompState
+from src.tools import verification_tools
 
-_GLA_BOUNDS = (300, 12000)
-_LOT_BOUNDS = (0, 80000)
-
-
-def _flag(code: str, severity: str, message: str) -> dict[str, str]:
-    return {"code": code, "severity": severity, "message": message}
+_SYSTEM_PROMPT = (
+    "You are the Fact Verification agent for KV Capital. Using ONLY the tools, "
+    "verify the subject and comparable facts across sources. Do not assert facts "
+    "you did not verify.\n\n"
+    "Steps: cross_source_fact_checker on the comps; assessment_record_lookup and "
+    "permit_lookup to corroborate the subject; sale_price_verifier; the "
+    "gla/lot/property_type conflict detectors; for the key subject facts (e.g. "
+    "gla_sqft, year_built, lot_size_sqft) call confidence_score then "
+    "verified_fact_writer with the value, confidence, and sources. append_evidence "
+    "for each source. Call raise_human_review for unresolved conflicts. Finish "
+    "with a one-line verification summary."
+)
 
 
 def fact_verification_node(state: CompState) -> dict[str, Any]:
-    comps = state.get("ranked_comps", [])
-    flags: list[dict[str, str]] = []
+    if not llm.llm_available():
+        raise llm.LLMUnavailableError(
+            "Fact Verification is an LLM agent and requires OPENAI_API_KEY to be set."
+        )
 
-    verified_count = 0
-    out_comps: list[dict[str, Any]] = []
-    for c in comps:
-        notes: list[str] = []
-        ok = True
+    tk = verification_tools.VerificationToolkit(state)
+    dispatch = verification_tools.build_dispatch(tk)
+    user = ("Verify facts for the subject and these comps:\n"
+            + json.dumps({"subject": {k: tk.subject.get(k) for k in
+                                      ("gla_sqft", "lot_size_sqft", "year_built", "property_type")},
+                          "comp_ids": [c.get("id") for c in tk.comps]}, indent=2, default=str))
+    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, verification_tools.TOOL_SPECS, dispatch)
 
-        price = float(c.get("sale_price") or 0)
-        if price <= 0:
-            ok = False
-            notes.append("non-positive sale price")
+    # Guarantee comps carry a verified flag for downstream nodes.
+    if not tk.summary:
+        tk.cross_source_fact_checker()
 
-        months = c.get("months_ago")
-        if months is None:
-            months = vm.months_between(c.get("sale_date"), config.VALUATION_DATE)
-        if months < 0:
-            ok = False
-            notes.append("sale date after the effective date")
-
-        gla = float(c.get("gla_sqft") or 0)
-        if not (_GLA_BOUNDS[0] <= gla <= _GLA_BOUNDS[1]):
-            ok = False
-            notes.append(f"GLA {gla:.0f} outside plausible range")
-
-        lot = c.get("lot_size_sqft")
-        if config.TYPE_HAS_LOT.get(c.get("property_type")) and (lot in (None, "") or float(lot) <= 0):
-            notes.append("missing lot size for lot-bearing type")
-        elif lot not in (None, "") and not (_LOT_BOUNDS[0] <= float(lot) <= _LOT_BOUNDS[1]):
-            notes.append(f"lot size {float(lot):.0f} outside plausible range")
-
-        merged = dict(c)
-        merged["verified"] = ok
-        merged["verification_notes"] = notes
-        out_comps.append(merged)
-        if ok:
-            verified_count += 1
-
-    unverified = len(out_comps) - verified_count
-    if unverified:
-        flags.append(_flag("unverified_comps", "medium" if unverified < len(out_comps) else "high",
-                           f"{unverified} of {len(out_comps)} comps failed a fact check."))
+    for esc in tk.escalations:
+        tk.flags.append({"code": "verification_escalation", "severity": esc["severity"],
+                         "message": esc["reason"]})
 
     verification = {
-        "checked": len(out_comps),
-        "verified": verified_count,
-        "unverified": unverified,
-        "flags": flags,
-        "note": "Cross-checked price, date, GLA, and lot against plausibility rules.",
+        "checked": tk.summary.get("checked", len(tk.comps)),
+        "verified": tk.summary.get("verified", 0),
+        "unverified": tk.summary.get("unverified", 0),
+        "verified_facts": tk.verified_facts,
+        "flags": tk.flags,
+        "note": "Cross-checked comp facts against plausibility rules and corroborating sources.",
     }
+
+    tools_used = [c["tool"] for c in run["calls"]]
     trace = state.get("trace", []) + [
-        f"fact_verification: {verified_count}/{len(out_comps)} comps verified"
-        + (f", {unverified} flagged" if unverified else "")
+        f"fact_verification (LLM agent): {verification['verified']}/{verification['checked']} "
+        f"comps verified, {len(tk.verified_facts)} subject facts written, "
+        f"flags={len(tk.flags)}; tools={tools_used}"
     ]
-    return {"ranked_comps": out_comps, "verification": verification, "trace": trace}
+    return {
+        "ranked_comps": tk.comps,
+        "verification": verification,
+        "evidence": state.get("evidence", []) + tk.evidence,
+        "trace": trace,
+    }

@@ -1,64 +1,74 @@
-"""Node 6 - Comp Retrieval (``CompRetrievalNode``).
+"""Node 6 - Comp Retrieval (LLM agent).
 
-Pulls recent sold comparables from the store using the market scope (radius,
-recency, GLA band, property-type filter) with progressive widening, scores each
-candidate against the subject by weighted similarity, selects the top-N working
-set, and attaches active + pending/conditional listing context for the market.
+Retrieves a broad candidate pool of sold comps (plus active/pending context),
+scores similarity, de-duplicates, flags non-arm's-length and outlier sales,
+ranks, and selects the strongest working set, logging rejections with reasons.
+Retrieval/similarity math is deterministic; the agent orchestrates and judges.
 
-Tools: MLS / IDX / private DB / public sources.
+No deterministic fallback: requires an LLM.
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from src import config, data_store, valuation_math as vm
+from src import config, data_store, llm
 from src.state import CompState
+from src.tools import retrieval_tools
 
-_CARRY = [
-    "id", "address", "neighborhood", "city", "property_type", "bedrooms",
-    "bathrooms", "gla_sqft", "lot_size_sqft", "year_built", "sale_date",
-    "sale_price", "distance_km", "months_ago",
-]
+_SYSTEM_PROMPT = (
+    "You are the Comp Retrieval agent for KV Capital. Using ONLY the tools, build "
+    "a strong set of comparable sales for the subject. Retrieve MORE candidates "
+    "than needed, then narrow down.\n\n"
+    "Steps: query_sold_comps; similarity_search_comps; deduplicate_properties; "
+    "arms_length_filter and outlier_sale_detector (log any rejects with "
+    "comp_rejection_logger and a reason); comp_candidate_ranker to select the "
+    "strongest working set; query_active_listings and query_pending_or_conditional "
+    "for market context. append_evidence for the comp source. Call "
+    "raise_human_review if too few usable comps are found. Finish with a one-line "
+    "summary of how many comps you selected."
+)
 
 
 def comp_retrieval_node(state: CompState) -> dict[str, Any]:
-    subject = state.get("subject", {})
-    scope = state.get("market_scope", {})
-
-    result = data_store.retrieve_candidates(subject, scope=scope)
-    candidates = result["candidates"]
-    meta = result["meta"]
-
-    # Score + select the top-N most comparable sold comps.
-    scored: list[dict[str, Any]] = []
-    for c in candidates:
-        overall, breakdown = vm.similarity(subject, c)
-        row = {k: c.get(k) for k in _CARRY}
-        row["similarity"] = round(overall, 4)
-        row["similarity_breakdown"] = {k: round(v, 3) for k, v in breakdown.items()}
-        scored.append(row)
-    scored.sort(key=lambda r: r["similarity"], reverse=True)
-    top = scored[: config.TOP_N_COMPS]
-
-    market = data_store.market_context(candidates)
-
-    final = meta["final_filters"]
-    trace = state.get("trace", []) + [
-        f"comp_retrieval: {meta['candidate_count']} sold candidates "
-        f"(radius={final['radius_km']}km, recency={final['recency_months']}mo, "
-        f"gla_band=+/-{int(final['gla_band']*100)}%, widened={meta['widened']}); "
-        f"selected top {len(top)}; market context {len(market.get('active', []))} active / "
-        f"{len(market.get('pending', []))} pending"
-        + (
-            ", top sims = " + ", ".join(f"{r['id']}:{r['similarity']:.2f}" for r in top)
-            if top else ""
+    if not llm.llm_available():
+        raise llm.LLMUnavailableError(
+            "Comp Retrieval is an LLM agent and requires OPENAI_API_KEY to be set."
         )
+
+    tk = retrieval_tools.RetrievalToolkit(state)
+    dispatch = retrieval_tools.build_dispatch(tk)
+    user = ("Retrieve comparables for this subject using the market scope:\n"
+            + json.dumps({"subject": {k: tk.subject.get(k) for k in
+                                      ("property_type", "gla_sqft", "neighborhood", "city")},
+                          "scope": tk.scope}, indent=2, default=str))
+    run = llm.run_tool_agent(_SYSTEM_PROMPT, user, retrieval_tools.TOOL_SPECS, dispatch)
+
+    # Deterministic guarantees: ensure a pool, scoring, ranking, and context exist.
+    if not tk.candidates:
+        tk.query_sold_comps()
+    if not tk.scored:
+        tk.similarity_search_comps()
+    if not tk.ranked:
+        tk.comp_candidate_ranker(config.TOP_N_COMPS)
+    if not tk.market:
+        tk.market = data_store.market_context(tk.candidates, case_dir=tk.case_dir)
+
+    tools_used = [c["tool"] for c in run["calls"]]
+    final = tk.meta.get("final_filters", {})
+    trace = state.get("trace", []) + [
+        f"comp_retrieval (LLM agent): {tk.meta.get('candidate_count', len(tk.candidates))} "
+        f"candidates (radius={final.get('radius_km')}km, recency={final.get('recency_months')}mo, "
+        f"widened={tk.meta.get('widened')}); selected {len(tk.ranked)}, rejected {len(tk.rejected)}; "
+        f"tools={tools_used}"
     ]
     return {
-        "candidates": candidates,
-        "retrieval_meta": meta,
-        "ranked_comps": top,
-        "market_context": market,
+        "candidates": tk.candidates,
+        "retrieval_meta": tk.meta,
+        "ranked_comps": tk.ranked,
+        "rejected_comps": tk.rejected,
+        "market_context": tk.market,
+        "evidence": state.get("evidence", []) + tk.evidence,
         "trace": trace,
     }
